@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { IProduct } from './product';
 import { ProductService } from './product.service';
 @Component({
@@ -6,11 +7,14 @@ import { ProductService } from './product.service';
   templateUrl: './product-list.component.html',
   styleUrls: ['./product-list.component.css'],
 })
-export class ProductListComponent implements OnInit {
+export class ProductListComponent implements OnInit, OnDestroy {
   pageTitle: string = 'Product List!';
   imageWidth: number = 50;
   imageMargin: number = 2;
   showImage: boolean = false;
+  errorMessage: string = '';
+  sub!: Subscription;
+
   private _listFilter: string = '';
   get listFilter(): string {
     return this._listFilter;
@@ -27,6 +31,11 @@ export class ProductListComponent implements OnInit {
 
   constructor(private productService: ProductService) {}
 
+  ngOnDestroy(): void {
+    // throw new Error('Method not implemented.');
+    this.sub.unsubscribe();
+  }
+
   performFilter(filterBy: string): IProduct[] {
     filterBy = filterBy.toLocaleLowerCase();
     return this.products.filter((product: IProduct) =>
@@ -39,11 +48,17 @@ export class ProductListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    console.log('ng init');
-    this.products = this.productService.getProducts();
-    this.filteredProducts = this.products;
+    // console.log('ng init');
+    this.sub = this.productService.getProducts().subscribe({
+      next: (products) => {
+        this.products = products;
+        this.filteredProducts = this.products;
+      },
+      error: (err) => (this.errorMessage = err),
+    });
     // this.listFilter = 'cart';
   }
+
   onRatingClicked(message: string): void {
     this.pageTitle = 'Product List: ' + message;
   }
